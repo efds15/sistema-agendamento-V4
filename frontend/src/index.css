@@ -1,0 +1,94 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --brand: #465FFF; --brand-dark: #3451e8;
+  --brand-50: #eef2ff; --brand-100: #e0e7ff;
+  --surface: #ffffff; --surface-2: #F9FAFB; --surface-3: #F3F4F6;
+  --border: #E5E7EB; --border-2: #D1D5DB;
+  --text-1: #111827; --text-2: #374151; --text-3: #6B7280; --text-4: #9CA3AF;
+  --success: #17B26A; --success-bg: #ECFDF3;
+  --warning: #F79009; --warning-bg: #FFFAEB;
+  --danger:  #F04438; --danger-bg:  #FEF3F2;
+  --info: #0BA5EC;    --info-bg: #F0F9FF;
+  --radius-sm: 6px; --radius: 10px; --radius-lg: 14px; --radius-xl: 20px;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.05);
+  --shadow:    0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-md: 0 4px 8px rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.04);
+  --shadow-lg: 0 10px 24px rgba(0,0,0,.10), 0 4px 8px rgba(0,0,0,.06);
+}
+
+[data-theme="dark"] {
+  --surface: #1e2433; --surface-2: #161b27; --surface-3: #252d3d;
+  --border: #2e3748; --border-2: #3a4558;
+  --text-1: #f1f5f9; --text-2: #cbd5e1; --text-3: #94a3b8; --text-4: #64748b;
+  --success-bg: #052e16; --warning-bg: #2d1b00; --danger-bg: #2d0c0c;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.3);
+  --shadow: 0 1px 3px rgba(0,0,0,.3);
+  --shadow-md: 0 4px 8px rgba(0,0,0,.35);
+  --shadow-lg: 0 10px 24px rgba(0,0,0,.4);
+}
+
+html, body { overflow-x: hidden; height: 100%; }
+
+body {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  background: var(--surface-2); color: var(--text-1);
+  font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased;
+  transition: background .25s, color .25s;
+}
+
+button { font-family: inherit; }
+input, select, textarea { font-family: inherit; }
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 3px; }
+
+/* ── Sidebar desktop: visível por padrão, oculto em mobile ── */
+.sidebar-desktop { display: flex !important; }
+.hide-mobile     { display: flex !important; }
+
+/* ── MOBILE ──────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* Oculta sidebar desktop — mobile usa o drawer (position:fixed) */
+  .sidebar-desktop { display: none !important; }
+  .hide-mobile     { display: none !important; }
+
+  /* Padding menor */
+  main { padding: 10px !important; }
+
+  /* Stats: 2×2 */
+  .stats-4col {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+  }
+
+  /* Layouts de 2 colunas viram 1 */
+  .dashboard-main,
+  .cal-grid,
+  .resources-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Formulários: 1 coluna */
+  .form-2col {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Tabelas: scroll horizontal */
+  .table-wrap {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Fontes menores */
+  h1 { font-size: 19px !important; }
+}
+
+@media (max-width: 480px) {
+  main { padding: 8px !important; }
+  .stats-4col { gap: 8px !important; }
+  h1 { font-size: 17px !important; }
+}
