@@ -3,19 +3,25 @@ import dotenv from 'dotenv'
 dotenv.config()
 
 async function migrate() {
-  // Conecta sem selecionar banco para poder criá-lo
-  const conn = await mysql.createConnection({
+  const db = process.env.DB_NAME || 'agendamento'
+  const connOptions = {
     host:     process.env.DB_HOST     || 'localhost',
     port:     parseInt(process.env.DB_PORT || '3306'),
     user:     process.env.DB_USER     || 'root',
     password: process.env.DB_PASSWORD || '',
-  })
+  }
 
-  const db = process.env.DB_NAME || 'agendamento'
-  console.log(`\n📦 Criando banco de dados "${db}"...\n`)
-
-  await conn.execute(`CREATE DATABASE IF NOT EXISTS \`${db}\` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`)
-  await conn.execute(`USE \`${db}\``)
+  // Se o banco já existe (Railway), conecta direto; senão cria localmente
+  let conn
+  if (process.env.DB_HOST && process.env.DB_HOST !== 'localhost') {
+    console.log(`\n📦 Conectando ao banco "${db}" em ${process.env.DB_HOST}...\n`)
+    conn = await mysql.createConnection({ ...connOptions, database: db })
+  } else {
+    console.log(`\n📦 Criando banco de dados "${db}"...\n`)
+    conn = await mysql.createConnection(connOptions)
+    await conn.query(`CREATE DATABASE IF NOT EXISTS \`${db}\` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`)
+    await conn.query(`USE \`${db}\``)
+  }
 
   const tables = [
     // ── teachers ───────────────────────────────────────────────
@@ -126,12 +132,12 @@ async function migrate() {
 
   for (const sql of tables) {
     const name = sql.match(/CREATE TABLE IF NOT EXISTS (\w+)/)[1]
-    await conn.execute(sql)
+    await conn.query(sql)
     console.log(`  ✅ Tabela "${name}" OK`)
   }
 
   // Views
-  await conn.execute(`CREATE OR REPLACE VIEW vw_bookings_full AS
+  await conn.query(`CREATE OR REPLACE VIEW vw_bookings_full AS
     SELECT b.id, b.date, b.start_time, b.end_time, b.purpose, b.status, b.equipment_ids, b.created_at,
            t.id AS teacher_id, t.name AS teacher_name, t.email AS teacher_email,
            r.id AS resource_id, r.name AS resource_name, r.type AS resource_type, r.location AS resource_location

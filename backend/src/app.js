@@ -13,7 +13,12 @@ const allowedOrigins = [
 
 app.use(cors({
   origin(origin, cb) {
-    if (!origin || allowedOrigins.some(u => origin.startsWith(u))) cb(null, true)
+    if (!origin) return cb(null, true)
+    const allowed =
+      allowedOrigins.some(u => origin.startsWith(u)) ||
+      /\.vercel\.app$/.test(origin) ||
+      /\.railway\.app$/.test(origin)
+    if (allowed) cb(null, true)
     else cb(new Error('Not allowed by CORS'))
   },
   credentials: true,

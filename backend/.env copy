@@ -1,0 +1,12 @@
+PORT=3001
+JWT_SECRET=agendamento_secret_jwt_2025
+
+# MySQL (use PlanetScale, Railway ou outro MySQL remoto para Vercel)
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=root321
+DB_NAME=infagendamento
+
+# URL do frontend (para CORS)
+FRONTEND_URL=http://localhost:5173
