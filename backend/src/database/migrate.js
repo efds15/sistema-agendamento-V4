@@ -161,7 +161,7 @@ export async function migrateNotifications() {
     password: process.env.DB_PASSWORD || '',
     database: process.env.DB_NAME || 'agendamento',
   })
-  await conn.execute(`
+  await conn.query(`
     CREATE TABLE IF NOT EXISTS notifications (
       id         INT UNSIGNED NOT NULL AUTO_INCREMENT,
       user_id    INT UNSIGNED NOT NULL COMMENT 'Destinatário',
@@ -197,7 +197,7 @@ export async function migrateImages() {
     `ALTER TABLE users      ADD COLUMN IF NOT EXISTS image_url VARCHAR(255) NULL AFTER active`,
   ]
   for (const q of queries) {
-    try { await conn.execute(q) } catch(e) { /* column may already exist */ }
+    try { await conn.query(q) } catch(e) { /* column may already exist */ }
   }
   await conn.end()
 }
