@@ -4,18 +4,35 @@ dotenv.config()
 
 const isServerless = !!process.env.VERCEL || !!process.env.AWS_LAMBDA_FUNCTION_NAME
 
-const dbConfig = {
-  host:           process.env.DB_HOST     || 'localhost',
-  port:           parseInt(process.env.DB_PORT || '3306'),
-  user:           process.env.DB_USER     || 'root',
-  password:       process.env.DB_PASSWORD || '',
-  database:       process.env.DB_NAME     || 'agendamento',
-  timezone:       'Z',
-  decimalNumbers: true,
-  ...(isServerless && { ssl: { rejectUnauthorized: false } }),
+function getDbConfig() {
+  if (process.env.DATABASE_URL) {
+    const url = new URL(process.env.DATABASE_URL)
+    return {
+      host:           url.hostname,
+      port:           parseInt(url.port),
+      user:           url.username,
+      password:       url.password,
+      database:       url.pathname.slice(1),
+      timezone:       'Z',
+      decimalNumbers: true,
+      ssl:            { rejectUnauthorized: false },
+      connectTimeout: 10000,
+    }
+  }
+  return {
+    host:           process.env.DB_HOST     || 'localhost',
+    port:           parseInt(process.env.DB_PORT || '3306'),
+    user:           process.env.DB_USER     || 'root',
+    password:       process.env.DB_PASSWORD || '',
+    database:       process.env.DB_NAME     || 'agendamento',
+    timezone:       'Z',
+    decimalNumbers: true,
+    ...(isServerless && { ssl: { rejectUnauthorized: false }, connectTimeout: 10000 }),
+  }
 }
 
-console.log(`[DB] host=${dbConfig.host} port=${dbConfig.port} db=${dbConfig.database} serverless=${isServerless}`)
+const dbConfig = getDbConfig()
+console.log(`[DB] host=${dbConfig.host} port=${dbConfig.port} db=${dbConfig.database} serverless=${isServerless} ssl=${!!dbConfig.ssl}`)
 
 const pool = isServerless ? null : mysql.createPool({
   ...dbConfig,
