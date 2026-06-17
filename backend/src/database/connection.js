@@ -12,7 +12,10 @@ const dbConfig = {
   database:       process.env.DB_NAME     || 'agendamento',
   timezone:       'Z',
   decimalNumbers: true,
+  ...(isServerless && { ssl: { rejectUnauthorized: false } }),
 }
+
+console.log(`[DB] host=${dbConfig.host} port=${dbConfig.port} db=${dbConfig.database} serverless=${isServerless}`)
 
 const pool = isServerless ? null : mysql.createPool({
   ...dbConfig,
