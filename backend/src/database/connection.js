@@ -2,31 +2,36 @@ import mysql from 'mysql2/promise'
 import dotenv from 'dotenv'
 dotenv.config()
 
-const pool = mysql.createPool({
-  host:              process.env.DB_HOST     || 'localhost',
-  port:              parseInt(process.env.DB_PORT || '3306'),
-  user:              process.env.DB_USER     || 'root',
-  password:          process.env.DB_PASSWORD || '',
-  database:          process.env.DB_NAME     || 'agendamento',
+const isServerless = !!process.env.VERCEL || !!process.env.AWS_LAMBDA_FUNCTION_NAME
+
+const dbConfig = {
+  host:           process.env.DB_HOST     || 'localhost',
+  port:           parseInt(process.env.DB_PORT || '3306'),
+  user:           process.env.DB_USER     || 'root',
+  password:       process.env.DB_PASSWORD || '',
+  database:       process.env.DB_NAME     || 'agendamento',
+  timezone:       'Z',
+  decimalNumbers: true,
+}
+
+const pool = isServerless ? null : mysql.createPool({
+  ...dbConfig,
   waitForConnections: true,
-  connectionLimit:    5,
-  idleTimeout:       30000,
-  enableKeepAlive:   true,
-  keepAliveInitialDelay: 10000,
-  timezone:          'Z',
-  decimalNumbers:    true,
+  connectionLimit:    10,
 })
 
+async function getConnection() {
+  if (pool) return pool
+  return mysql.createConnection(dbConfig)
+}
+
 export async function query(sql, params = []) {
+  const conn = await getConnection()
   try {
-    const [rows] = await pool.execute(sql, params)
+    const [rows] = await conn.execute(sql, params)
     return rows
-  } catch (err) {
-    if (err.code === 'PROTOCOL_CONNECTION_LOST' || err.code === 'ECONNRESET' || err.code === 'EPIPE') {
-      const [rows] = await pool.execute(sql, params)
-      return rows
-    }
-    throw err
+  } finally {
+    if (!pool) await conn.end()
   }
 }
 
@@ -36,7 +41,7 @@ export async function queryOne(sql, params = []) {
 }
 
 export async function transaction(fn) {
-  const conn = await pool.getConnection()
+  const conn = pool ? await pool.getConnection() : await mysql.createConnection(dbConfig)
   await conn.beginTransaction()
   try {
     const result = await fn(conn)
@@ -46,13 +51,14 @@ export async function transaction(fn) {
     await conn.rollback()
     throw err
   } finally {
-    conn.release()
+    if (pool) conn.release()
+    else await conn.end()
   }
 }
 
 export async function testConnection() {
   try {
-    await pool.execute('SELECT 1')
+    await query('SELECT 1')
     console.log('✅ MySQL conectado com sucesso')
     return true
   } catch (err) {
@@ -61,4 +67,4 @@ export async function testConnection() {
   }
 }
 
-export default pool
+export default pool || { execute: (sql, params) => query(sql, params) }
