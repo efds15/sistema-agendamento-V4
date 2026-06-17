@@ -40,17 +40,20 @@ export const teachers = {
   create: d       => api.post('/teachers', d),
   update: (id,d)  => api.put(`/teachers/${id}`, d),
   toggle: id      => api.patch(`/teachers/${id}/toggle`),
+  delete: id      => api.delete(`/teachers/${id}`),
 }
 export const resources = {
   list:   p      => api.get('/resources', { params: p }),
   create: d      => api.post('/resources', d),
   update: (id,d) => api.put(`/resources/${id}`, d),
+  toggle: id     => api.patch(`/resources/${id}/toggle`),
   delete: id     => api.delete(`/resources/${id}`),
 }
 export const equipments = {
   list:   p      => api.get('/equipments', { params: p }),
   create: d      => api.post('/equipments', d),
   update: (id,d) => api.put(`/equipments/${id}`, d),
+  toggle: id     => api.patch(`/equipments/${id}/toggle`),
   delete: id     => api.delete(`/equipments/${id}`),
 }
 export const slots = {

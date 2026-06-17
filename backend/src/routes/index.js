@@ -2,7 +2,7 @@ import { getSlots, createSlot, updateSlot, deleteSlot } from '../controllers/slo
 import { Router } from 'express'
 import { login, me, changePassword } from '../controllers/authController.js'
 import { getBookings, getBookingById, createBooking, updateBooking, cancelBooking, getAvailability, getDashboard } from '../controllers/bookingController.js'
-import { getTeachers, getTeacherById, createTeacher, updateTeacher, toggleTeacher, getResources, createResource, updateResource, deleteResource, getEquipments, createEquipment, updateEquipment, deleteEquipment, getUsers, updateUser, resetUserPassword, createUser } from '../controllers/resourceController.js'
+import { getTeachers, getTeacherById, createTeacher, updateTeacher, toggleTeacher, deleteTeacher, getResources, createResource, updateResource, toggleResource, deleteResource, getEquipments, createEquipment, updateEquipment, toggleEquipment, deleteEquipment, getUsers, updateUser, deleteUser, resetUserPassword, createUser } from '../controllers/resourceController.js'
 import { getNotifications, markRead, markAllRead, deleteNotification } from '../controllers/notificationController.js'
 import { uploadTeacherImage, uploadUserImage, uploadEquipmentImage, deleteImage } from '../controllers/uploadController.js'
 import { authMiddleware, adminOnly, superAdminOnly } from '../middleware/auth.js'
@@ -28,26 +28,30 @@ r.post('/bookings',       createBooking)
 r.put('/bookings/:id',    updateBooking)
 r.delete('/bookings/:id', cancelBooking)
 
-r.get('/resources',           getResources)
-r.post('/resources',          adminOnly, createResource)
-r.put('/resources/:id',       adminOnly, updateResource)
-r.delete('/resources/:id',    adminOnly, deleteResource)
+r.get('/resources',              getResources)
+r.post('/resources',             adminOnly, createResource)
+r.put('/resources/:id',          adminOnly, updateResource)
+r.patch('/resources/:id/toggle', adminOnly, toggleResource)
+r.delete('/resources/:id',       adminOnly, deleteResource)
 
-r.get('/equipments',           getEquipments)
-r.post('/equipments',          adminOnly, createEquipment)
-r.put('/equipments/:id',       adminOnly, updateEquipment)
-r.delete('/equipments/:id',    adminOnly, deleteEquipment)
+r.get('/equipments',              getEquipments)
+r.post('/equipments',             adminOnly, createEquipment)
+r.put('/equipments/:id',          adminOnly, updateEquipment)
+r.patch('/equipments/:id/toggle', adminOnly, toggleEquipment)
+r.delete('/equipments/:id',       adminOnly, deleteEquipment)
 
 r.get('/teachers',               getTeachers)
 r.get('/teachers/:id',           getTeacherById)
 r.post('/teachers',              adminOnly, createTeacher)
 r.put('/teachers/:id',           adminOnly, updateTeacher)
 r.patch('/teachers/:id/toggle',  adminOnly, toggleTeacher)
+r.delete('/teachers/:id',        adminOnly, deleteTeacher)
 
 r.get('/users',                       superAdminOnly, getUsers)
 r.post('/users',                      superAdminOnly, createUser)
 r.put('/users/:id',                   superAdminOnly, updateUser)
 r.put('/users/:id/reset-password',    superAdminOnly, resetUserPassword)
+r.delete('/users/:id',                superAdminOnly, deleteUser)
 
 // ── Upload de imagens ──────────────────────────────────────
 r.post('/teachers/:id/image',   (req,res,next) => { req.uploadFolder='avatars';    next() }, upload.single('image'), uploadTeacherImage)

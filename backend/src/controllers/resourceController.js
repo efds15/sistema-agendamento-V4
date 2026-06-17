@@ -124,6 +124,17 @@ export async function toggleTeacher(req, res) {
   } catch (e) { res.status(500).json({ error: 'Erro interno' }) }
 }
 
+export async function deleteTeacher(req, res) {
+  try {
+    const id = req.params.id
+    const bookings = await query('SELECT COUNT(*) AS n FROM bookings WHERE teacher_id = ?', [id])
+    if (bookings[0].n > 0) return res.status(409).json({ error: 'Professor possui agendamentos vinculados. Desative-o ao invés de excluir.' })
+    await query('DELETE FROM users WHERE teacher_id = ?', [id])
+    await query('DELETE FROM teachers WHERE id = ?', [id])
+    res.json({ message: 'Professor excluído' })
+  } catch (e) { res.status(500).json({ error: 'Erro interno' }) }
+}
+
 // ── RESOURCES ─────────────────────────────────────────────────
 export async function getResources(req, res) {
   try {
@@ -167,11 +178,23 @@ export async function updateResource(req, res) {
   } catch (e) { res.status(500).json({ error: 'Erro interno' }) }
 }
 
+export async function toggleResource(req, res) {
+  try {
+    const r = await queryOne('SELECT * FROM resources WHERE id = ?', [req.params.id])
+    if (!r) return res.status(404).json({ error: 'Ambiente não encontrado' })
+    const newActive = r.active ? 0 : 1
+    await query('UPDATE resources SET active=? WHERE id=?', [newActive, req.params.id])
+    res.json(await queryOne('SELECT * FROM resources WHERE id = ?', [req.params.id]))
+  } catch (e) { res.status(500).json({ error: 'Erro interno' }) }
+}
+
 export async function deleteResource(req, res) {
   try {
     const id = req.params.id
-    await query('UPDATE resources SET active = 0 WHERE id = ?', [id])
-    res.json({ message: 'Ambiente desativado' })
+    const bookings = await query('SELECT COUNT(*) AS n FROM bookings WHERE resource_id = ?', [id])
+    if (bookings[0].n > 0) return res.status(409).json({ error: 'Ambiente possui agendamentos vinculados. Desative-o ao invés de excluir.' })
+    await query('DELETE FROM resources WHERE id = ?', [id])
+    res.json({ message: 'Ambiente excluído' })
   } catch (e) { res.status(500).json({ error: 'Erro interno' }) }
 }
 
@@ -214,10 +237,22 @@ export async function updateEquipment(req, res) {
   } catch (e) { res.status(500).json({ error: 'Erro interno' }) }
 }
 
+export async function toggleEquipment(req, res) {
+  try {
+    const e = await queryOne('SELECT * FROM equipments WHERE id = ?', [req.params.id])
+    if (!e) return res.status(404).json({ error: 'Equipamento não encontrado' })
+    const newActive = e.active ? 0 : 1
+    await query('UPDATE equipments SET active=? WHERE id=?', [newActive, req.params.id])
+    res.json(await queryOne('SELECT * FROM equipments WHERE id = ?', [req.params.id]))
+  } catch (e) { res.status(500).json({ error: 'Erro interno' }) }
+}
+
 export async function deleteEquipment(req, res) {
   try {
-    await query('UPDATE equipments SET active = 0 WHERE id = ?', [req.params.id])
-    res.json({ message: 'Equipamento desativado' })
+    const id = req.params.id
+    await query('DELETE FROM booking_equipment WHERE equipment_id = ?', [id])
+    await query('DELETE FROM equipments WHERE id = ?', [id])
+    res.json({ message: 'Equipamento excluído' })
   } catch (e) { res.status(500).json({ error: 'Erro interno' }) }
 }
 
@@ -243,6 +278,25 @@ export async function updateUser(req, res) {
         [name??u.name, email??u.email, role??u.role, active!=null?active:u.active, u.teacher_id])
     }
     res.json(await queryOne('SELECT id,name,email,role,teacher_id,active FROM users WHERE id=?',[id]))
+  } catch (e) { res.status(500).json({ error: 'Erro interno' }) }
+}
+
+export async function deleteUser(req, res) {
+  try {
+    const id = req.params.id
+    const u = await queryOne('SELECT * FROM users WHERE id = ?', [id])
+    if (!u) return res.status(404).json({ error: 'Usuário não encontrado' })
+    if (u.id === req.user.id) return res.status(400).json({ error: 'Você não pode excluir seu próprio usuário' })
+    await query('DELETE FROM notifications WHERE user_id = ?', [id])
+    if (u.teacher_id) {
+      const bookings = await query('SELECT COUNT(*) AS n FROM bookings WHERE teacher_id = ?', [u.teacher_id])
+      if (bookings[0].n > 0) return res.status(409).json({ error: 'Usuário possui agendamentos vinculados. Desative-o ao invés de excluir.' })
+      await query('DELETE FROM users WHERE id = ?', [id])
+      await query('DELETE FROM teachers WHERE id = ?', [u.teacher_id])
+    } else {
+      await query('DELETE FROM users WHERE id = ?', [id])
+    }
+    res.json({ message: 'Usuário excluído' })
   } catch (e) { res.status(500).json({ error: 'Erro interno' }) }
 }
 

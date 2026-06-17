@@ -16,18 +16,38 @@ const btnP = { display:'flex', alignItems:'center', gap:'8px', padding:'10px 20p
 const btnE = { padding:'6px 8px', background:'var(--brand-50)', color:'var(--brand)', border:'none', borderRadius:'var(--radius-sm)', cursor:'pointer', fontSize:'14px' }
 const btnD = { padding:'6px 8px', background:'var(--danger-bg)', color:'var(--danger)', border:'none', borderRadius:'var(--radius-sm)', cursor:'pointer', fontSize:'14px' }
 
-// Footer do modal: só exibe para admins — para professors mostra aviso
+const btnCancel = { padding:'9px 18px', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--radius)', cursor:'pointer', fontWeight:600, fontSize:'13.5px' }
+const btnSave   = { padding:'9px 18px', background:'var(--brand)', color:'#fff', border:'none', borderRadius:'var(--radius)', cursor:'pointer', fontWeight:600, fontSize:'13.5px' }
+const btnDanger = { padding:'9px 16px', background:'var(--danger-bg)', color:'var(--danger)', border:'none', borderRadius:'var(--radius)', cursor:'pointer', fontWeight:600, fontSize:'13px' }
+const btnToggle = active => ({ padding:'9px 16px', background:active?'var(--warning-bg)':'var(--success-bg)', color:active?'#92400E':'var(--success)', border:'none', borderRadius:'var(--radius)', cursor:'pointer', fontWeight:600, fontSize:'13px' })
+
 function ModalFooter({ onCancel, onSave, saving, label='Salvar', isAdmin }) {
   if (!isAdmin) return (
     <div style={{ display:'flex', alignItems:'center', gap:'8px', color:'var(--text-4)', fontSize:'13px' }}>
       <span>🔒</span> Apenas administradores podem editar
-      <button onClick={onCancel} style={{ marginLeft:'auto', padding:'9px 18px', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--radius)', cursor:'pointer', fontWeight:600, fontSize:'13.5px' }}>Fechar</button>
+      <button onClick={onCancel} style={{ marginLeft:'auto', ...btnCancel }}>Fechar</button>
     </div>
   )
   return <>
-    <button onClick={onCancel} style={{ padding:'9px 18px', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--radius)', cursor:'pointer', fontWeight:600, fontSize:'13.5px' }}>Cancelar</button>
-    <button onClick={onSave} disabled={saving} style={{ padding:'9px 18px', background:'var(--brand)', color:'#fff', border:'none', borderRadius:'var(--radius)', cursor:'pointer', fontWeight:600, fontSize:'13.5px', opacity:saving?.7:1 }}>{saving?'Salvando...':label}</button>
+    <button onClick={onCancel} style={btnCancel}>Cancelar</button>
+    <button onClick={onSave} disabled={saving} style={{ ...btnSave, opacity:saving?.7:1 }}>{saving?'Salvando...':label}</button>
   </>
+}
+
+function EditFooter({ onCancel, onSave, saving, onDelete, onToggle, active, extraActions }) {
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:'8px', width:'100%' }}>
+      <div style={{ display:'flex', gap:'8px' }}>
+        <button onClick={onDelete} style={btnDanger}>Excluir</button>
+        {onToggle && <button onClick={onToggle} style={btnToggle(active)}>{active ? 'Desativar' : 'Ativar'}</button>}
+        {extraActions}
+      </div>
+      <div style={{ display:'flex', gap:'8px', marginLeft:'auto' }}>
+        <button onClick={onCancel} style={btnCancel}>Cancelar</button>
+        <button onClick={onSave} disabled={saving} style={{ ...btnSave, opacity:saving?.7:1 }}>{saving ? 'Salvando...' : 'Salvar'}</button>
+      </div>
+    </div>
+  )
 }
 
 // Banner de somente leitura mostrado dentro de modais para professores
@@ -102,10 +122,15 @@ export function Ambientes() {
     } catch { toast('Erro', 'error') } finally { setSaving(false) }
   }
 
+  async function handleToggle(id, e) {
+    e.stopPropagation()
+    try { await resourcesApi.toggle(id); load() } catch { toast('Erro', 'error') }
+  }
   async function handleDelete(id, e) {
     e.stopPropagation()
-    if (!confirm('Desativar este ambiente?')) return
-    try { await resourcesApi.delete(id); toast('Desativado', 'warning'); load() } catch { toast('Erro', 'error') }
+    if (!confirm('Excluir permanentemente este ambiente? Esta ação não pode ser desfeita.')) return
+    try { await resourcesApi.delete(id); toast('Ambiente excluído'); setEdit(null); load() }
+    catch(err) { toast(err.response?.data?.error || 'Erro ao excluir', 'error') }
   }
 
   function openCard(r) {
@@ -147,7 +172,10 @@ export function Ambientes() {
                 {isAdmin && (
                   <div style={{ marginTop:'14px', paddingTop:'14px', borderTop:'1px solid var(--border)', display:'flex', gap:'8px' }} onClick={e => e.stopPropagation()}>
                     <button onClick={() => openCard(r)} style={{ ...btnP, flex:1, justifyContent:'center', padding:'7px', boxShadow:'none', fontSize:'12.5px' }}>Editar</button>
-                    <button onClick={e => handleDelete(r.id, e)} style={btnD}>🗑</button>
+                    <button onClick={e => handleToggle(r.id, e)}
+                      style={{ padding:'6px 10px', background:r.active?'var(--danger-bg)':'var(--success-bg)', color:r.active?'var(--danger)':'var(--success)', border:'none', borderRadius:'var(--radius-sm)', cursor:'pointer', fontSize:'12px', fontWeight:600 }}>
+                      {r.active?'Desativar':'Ativar'}
+                    </button>
                   </div>
                 )}
               </div>
@@ -197,14 +225,18 @@ export function Ambientes() {
       </Modal>
 
       <Modal open={isAdmin && !!editModal} onClose={() => setEdit(null)} title="Editar Ambiente" icon="✏️"
-        footer={<ModalFooter isAdmin={isAdmin} onCancel={() => setEdit(null)} onSave={handleEdit} saving={saving} />}>
+        footer={<EditFooter
+          onCancel={() => setEdit(null)} onSave={handleEdit} saving={saving}
+          onDelete={() => handleDelete(editModal?.id, { stopPropagation(){} })}
+          onToggle={() => { resourcesApi.toggle(editModal?.id).then(() => { toast(editModal?.active?'Desativado':'Ativado'); setEdit(null); load() }).catch(() => toast('Erro','error')) }}
+          active={editModal?.active}
+        />}>
         {editModal && <FormGrid>
           <Field label="Nome" required col="1/3"><Input value={editModal.name} onChange={fe('name')} /></Field>
           <Field label="Tipo"><Select value={editModal.type} onChange={fe('type')}>{Object.entries(typeMap).map(([v,l])=><option key={v} value={v}>{l}</option>)}</Select></Field>
           <Field label="Capacidade"><Input type="number" value={editModal.capacity} onChange={fe('capacity')} /></Field>
           <Field label="Localização"><Input value={editModal.location||''} onChange={fe('location')} /></Field>
           <Field label="Andar"><Input value={editModal.floor||''} onChange={fe('floor')} /></Field>
-          <Field label="Status"><Select value={editModal.active?'1':'0'} onChange={e=>setEdit(p=>({...p,active:e.target.value==='1'}))}><option value="1">Ativo</option><option value="0">Inativo</option></Select></Field>
           <Field label="Recursos" col="1/3"><Input value={editModal.features||''} onChange={fe('features')} /></Field>
         </FormGrid>}
       </Modal>
@@ -254,6 +286,16 @@ export function Equipamentos() {
     try { await equipmentsApi.update(editModal.id, editModal); toast('Atualizado!'); setEdit(null); load() }
     catch { toast('Erro', 'error') } finally { setSaving(false) }
   }
+  async function handleToggle(id, e) {
+    e.stopPropagation()
+    try { await equipmentsApi.toggle(id); load() } catch { toast('Erro', 'error') }
+  }
+  async function handleDelete(id, e) {
+    e.stopPropagation()
+    if (!confirm('Excluir permanentemente este equipamento? Esta ação não pode ser desfeita.')) return
+    try { await equipmentsApi.delete(id); toast('Equipamento excluído'); setEdit(null); load() }
+    catch(err) { toast(err.response?.data?.error || 'Erro ao excluir', 'error') }
+  }
 
   function openRow(e) {
     if (isAdmin) setEdit({ ...e })
@@ -269,7 +311,7 @@ export function Equipamentos() {
       </div>
       <Card pad={false} style={{ overflow:'hidden' }}>
         <Table
-          headers={['', {label:'Equipamento',key:'name'}, {label:'Tipo',key:'type'}, {label:'Marca / Modelo',key:'brand'}, {label:'Patrimônio',key:'patrimony'}, {label:'Status',key:'status'}, isAdmin?'Ações':'']}
+          headers={['', {label:'Equipamento',key:'name'}, {label:'Tipo',key:'type'}, {label:'Marca / Modelo',key:'brand'}, {label:'Patrimônio',key:'patrimony'}, {label:'Status',key:'status'}, {label:'Ativo',key:'active'}, isAdmin?'Ações':'']}
           loading={loading}
           sortCol={eqSCol} sortDir={eqSDir} onSort={eqOnSort}
           page={eqPage} totalPages={eqPages} total={eqTotal} pageSize={eqPS} onPageChange={eqSetPage}>
@@ -283,8 +325,17 @@ export function Equipamentos() {
               <Td style={{ color:'var(--text-3)' }}>{[e.brand,e.model].filter(Boolean).join(' ')||'—'}</Td>
               <Td><code style={{ fontSize:'12px', background:'var(--surface-2)', padding:'3px 7px', borderRadius:'var(--radius-sm)' }}>{e.patrimony||'—'}</code></Td>
               <Td><StatusBadge status={e.status} /></Td>
+              <Td><StatusBadge status={e.active?'ativo':'inativo'} /></Td>
               <Td onClick={ev => ev.stopPropagation()}>
-                {isAdmin && <button onClick={() => setEdit({ ...e })} style={btnE}>✏️</button>}
+                {isAdmin && (
+                  <div style={{ display:'flex', gap:'6px' }}>
+                    <button onClick={() => setEdit({ ...e })} style={btnE}>✏️</button>
+                    <button onClick={ev => handleToggle(e.id, ev)}
+                      style={{ padding:'6px 10px', background:e.active?'var(--danger-bg)':'var(--success-bg)', color:e.active?'var(--danger)':'var(--success)', border:'none', borderRadius:'var(--radius-sm)', cursor:'pointer', fontSize:'12px', fontWeight:600 }}>
+                      {e.active?'Desativar':'Ativar'}
+                    </button>
+                  </div>
+                )}
               </Td>
             </Tr>
           ))}
@@ -328,7 +379,12 @@ export function Equipamentos() {
 
       {/* Edição admin */}
       <Modal open={isAdmin && !!editModal} onClose={() => setEdit(null)} title="Editar Equipamento" icon="✏️"
-        footer={<ModalFooter isAdmin={isAdmin} onCancel={() => setEdit(null)} onSave={handleEdit} saving={saving} />}>
+        footer={<EditFooter
+          onCancel={() => setEdit(null)} onSave={handleEdit} saving={saving}
+          onDelete={() => handleDelete(editModal?.id, { stopPropagation(){} })}
+          onToggle={() => { equipmentsApi.toggle(editModal?.id).then(() => { toast(editModal?.active?'Desativado':'Ativado'); setEdit(null); load() }).catch(() => toast('Erro','error')) }}
+          active={editModal?.active}
+        />}>
         {editModal && <FormGrid>
           <Field label="Foto" col="1/3"><ImageUploadField entityType="equipment" entityId={editModal.id} currentImage={editModal.image_url} onUploaded={url => setEdit(p => ({ ...p, image_url: url }))} /></Field>
           <Field label="Nome" required col="1/3"><Input value={editModal.name} onChange={fe('name')} /></Field>
@@ -389,6 +445,12 @@ export function Professores() {
   async function handleToggle(id, e) {
     e.stopPropagation()
     try { await teachersApi.toggle(id); load() } catch { toast('Erro','error') }
+  }
+  async function handleDelete(id, e) {
+    e.stopPropagation()
+    if (!confirm('Excluir permanentemente este professor? Esta ação não pode ser desfeita.')) return
+    try { await teachersApi.delete(id); toast('Professor excluído'); setEdit(null); load() }
+    catch(err) { toast(err.response?.data?.error || 'Erro ao excluir', 'error') }
   }
 
   function openRow(t) {
@@ -477,7 +539,12 @@ export function Professores() {
 
       {/* Edição admin */}
       <Modal open={isAdmin && !!editModal} onClose={() => setEdit(null)} title="Editar Professor" icon="✏️"
-        footer={<ModalFooter isAdmin={isAdmin} onCancel={() => setEdit(null)} onSave={handleEdit} saving={saving} />}>
+        footer={<EditFooter
+          onCancel={() => setEdit(null)} onSave={handleEdit} saving={saving}
+          onDelete={() => handleDelete(editModal?.id, { stopPropagation(){} })}
+          onToggle={() => { teachersApi.toggle(editModal?.id).then(() => { toast(editModal?.active?'Desativado':'Ativado'); setEdit(null); load() }).catch(() => toast('Erro','error')) }}
+          active={editModal?.active}
+        />}>
         {editModal && <FormGrid>
           <Field label="Foto" col="1/3">
             <ImageUploadField entityType="teacher" entityId={editModal.id} currentImage={editModal.image_url}
@@ -489,7 +556,6 @@ export function Professores() {
           <Field label="Matérias"><Input value={editModal.subjects||''} onChange={fe('subjects')} /></Field>
           <Field label="Telefone"><Input value={editModal.phone||''} onChange={fe('phone')} /></Field>
           <Field label="Acesso"><Select value={editModal.role} onChange={fe('role')}><option value="teacher">Professor</option><option value="coordinator">Coordenador</option><option value="admin">Admin</option></Select></Field>
-          <Field label="Ativo" col="1/3"><Select value={editModal.active?'1':'0'} onChange={e=>setEdit(p=>({...p,active:e.target.value==='1'}))}><option value="1">Sim</option><option value="0">Não</option></Select></Field>
         </FormGrid>}
       </Modal>
     </div>
@@ -552,6 +618,12 @@ export function Usuarios() {
     e.stopPropagation()
     try { await api.put(`/users/${id}`, { active: !active }); toast(active?'Desativado':'Ativado', active?'warning':'success'); load() }
     catch { toast('Erro','error') }
+  }
+  async function handleDeleteUser(id, e) {
+    e.stopPropagation()
+    if (!confirm('Excluir permanentemente este usuário? Esta ação não pode ser desfeita.')) return
+    try { await api.delete(`/users/${id}`); toast('Usuário excluído'); setEdit(null); load() }
+    catch(err) { toast(err.response?.data?.error || 'Erro ao excluir', 'error') }
   }
   async function handleResetPw(id, e) {
     e.stopPropagation()
@@ -661,7 +733,13 @@ export function Usuarios() {
 
       {/* Modal edição */}
       <Modal open={!!editModal} onClose={() => setEdit(null)} title="Editar Usuário" icon="✏️"
-        footer={<ModalFooter isAdmin={true} onCancel={() => setEdit(null)} onSave={handleEdit} saving={saving} />}>
+        footer={<EditFooter
+          onCancel={() => setEdit(null)} onSave={handleEdit} saving={saving}
+          onDelete={() => handleDeleteUser(editModal?.id, { stopPropagation(){} })}
+          onToggle={() => { api.put(`/users/${editModal?.id}`, { active: !editModal?.active }).then(() => { toast(editModal?.active?'Desativado':'Ativado'); setEdit(null); load() }).catch(() => toast('Erro','error')) }}
+          active={editModal?.active}
+          extraActions={<button onClick={() => handleResetPw(editModal?.id, { stopPropagation(){} })} style={{ padding:'9px 16px', background:'var(--warning-bg)', color:'#92400E', border:'none', borderRadius:'var(--radius)', cursor:'pointer', fontWeight:600, fontSize:'13px' }}>Resetar Senha</button>}
+        />}>
         {editModal && <FormGrid>
           <Field label="Foto" col="1/3">
             <ImageUploadField entityType="user" entityId={editModal.id} currentImage={editModal.image_url}
@@ -673,10 +751,6 @@ export function Usuarios() {
             <option value="teacher">Professor</option>
             <option value="coordinator">Coordenador</option>
             <option value="admin">Administrador</option>
-          </Select></Field>
-          <Field label="Status"><Select value={editModal.active?'1':'0'} onChange={e=>setEdit(p=>({...p,active:e.target.value==='1'}))}>
-            <option value="1">Ativo</option>
-            <option value="0">Inativo</option>
           </Select></Field>
         </FormGrid>}
       </Modal>
