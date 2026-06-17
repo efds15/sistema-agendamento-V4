@@ -270,6 +270,20 @@ export async function cancelBooking(req, res) {
   } catch (e) { res.status(500).json({ error: 'Erro interno' }) }
 }
 
+// ── DELETE ─────────────────────────────────────────────────────
+export async function deleteBooking(req, res) {
+  try {
+    const id = parseInt(req.params.id)
+    const booking = await queryOne('SELECT * FROM bookings WHERE id = ?', [id])
+    if (!booking) return res.status(404).json({ error: 'Agendamento não encontrado' })
+    if (req.user.role === 'teacher' && booking.teacher_id !== req.user.teacherId)
+      return res.status(403).json({ error: 'Sem permissão' })
+    await query('DELETE FROM booking_equipment WHERE booking_id = ?', [id])
+    await query('DELETE FROM bookings WHERE id = ?', [id])
+    res.json({ message: 'Agendamento excluído' })
+  } catch (e) { res.status(500).json({ error: 'Erro interno' }) }
+}
+
 // ── AVAILABILITY ───────────────────────────────────────────────
 export async function getAvailability(req, res) {
   try {

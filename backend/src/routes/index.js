@@ -1,7 +1,7 @@
 import { getSlots, createSlot, updateSlot, deleteSlot } from '../controllers/slotController.js'
 import { Router } from 'express'
 import { login, me, changePassword } from '../controllers/authController.js'
-import { getBookings, getBookingById, createBooking, updateBooking, cancelBooking, getAvailability, getDashboard } from '../controllers/bookingController.js'
+import { getBookings, getBookingById, createBooking, updateBooking, cancelBooking, deleteBooking, getAvailability, getDashboard } from '../controllers/bookingController.js'
 import { getTeachers, getTeacherById, createTeacher, updateTeacher, toggleTeacher, deleteTeacher, getResources, createResource, updateResource, toggleResource, deleteResource, getEquipments, createEquipment, updateEquipment, toggleEquipment, deleteEquipment, getUsers, updateUser, deleteUser, resetUserPassword, createUser } from '../controllers/resourceController.js'
 import { getNotifications, markRead, markAllRead, deleteNotification } from '../controllers/notificationController.js'
 import { uploadTeacherImage, uploadUserImage, uploadEquipmentImage, deleteImage } from '../controllers/uploadController.js'
@@ -26,7 +26,8 @@ r.get('/bookings',        getBookings)
 r.get('/bookings/:id',    getBookingById)
 r.post('/bookings',       createBooking)
 r.put('/bookings/:id',    updateBooking)
-r.delete('/bookings/:id', cancelBooking)
+r.delete('/bookings/:id',           cancelBooking)
+r.delete('/bookings/:id/permanent', adminOnly, deleteBooking)
 
 r.get('/resources',              getResources)
 r.post('/resources',             adminOnly, createResource)

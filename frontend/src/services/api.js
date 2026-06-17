@@ -32,6 +32,7 @@ export const bookings = {
   create:       d  => api.post('/bookings', d),
   update:       (id,d) => api.put(`/bookings/${id}`, d),
   cancel:       id => api.delete(`/bookings/${id}`),
+  delete:       id => api.delete(`/bookings/${id}/permanent`),
   availability: p  => api.get('/bookings/availability', { params: p }),
 }
 export const teachers = {

@@ -94,6 +94,12 @@ export default function Agendamentos() {
     catch { toast('Erro', 'error') }
   }
 
+  async function handleDelete(id) {
+    if (!confirm('Excluir permanentemente este agendamento? Esta ação não pode ser desfeita.')) return
+    try { await bookingsApi.delete(id); toast('Agendamento excluído'); setEdit(null); setDetail(null); load() }
+    catch(err) { toast(err.response?.data?.error || 'Erro ao excluir', 'error') }
+  }
+
   async function handleSaveEdit() {
     if (!editModal) return
     setSaving(true)
@@ -268,10 +274,13 @@ export default function Agendamentos() {
       {/* EDIT MODAL */}
       <Modal open={!!editModal} onClose={() => setEdit(null)} title="Editar agendamento" icon="✏️"
         footer={
-          <>
-            <button onClick={() => setEdit(null)} style={{ padding:'9px 18px', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--radius)', cursor:'pointer', fontWeight:600, fontSize:'13.5px' }}>Cancelar</button>
-            <button onClick={handleSaveEdit} disabled={saving} style={{ padding:'9px 18px', background:'var(--brand)', color:'#fff', border:'none', borderRadius:'var(--radius)', cursor:'pointer', fontWeight:600, fontSize:'13.5px' }}>{saving ? 'Salvando...' : 'Salvar'}</button>
-          </>
+          <div style={{ display:'flex', alignItems:'center', gap:'8px', width:'100%' }}>
+            <button onClick={() => handleDelete(editModal?.id)} style={{ padding:'9px 16px', background:'var(--danger-bg)', color:'var(--danger)', border:'none', borderRadius:'var(--radius)', cursor:'pointer', fontWeight:600, fontSize:'13px' }}>Excluir</button>
+            <div style={{ display:'flex', gap:'8px', marginLeft:'auto' }}>
+              <button onClick={() => setEdit(null)} style={{ padding:'9px 18px', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--radius)', cursor:'pointer', fontWeight:600, fontSize:'13.5px' }}>Cancelar</button>
+              <button onClick={handleSaveEdit} disabled={saving} style={{ padding:'9px 18px', background:'var(--brand)', color:'#fff', border:'none', borderRadius:'var(--radius)', cursor:'pointer', fontWeight:600, fontSize:'13.5px', opacity:saving?.7:1 }}>{saving ? 'Salvando...' : 'Salvar'}</button>
+            </div>
+          </div>
         }>
         {editModal && (
           <FormGrid>
