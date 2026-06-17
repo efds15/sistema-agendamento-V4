@@ -291,6 +291,35 @@ export default function Calendario() {
     setBookingModal({ date: d })
   }
 
+  async function handleConfirm(id) {
+    try {
+      await bookingsApi.update(id, { status: 'confirmado' })
+      toast('Agendamento confirmado!')
+      load()
+      setDayModal(prev => prev ? { ...prev, bookings: prev.bookings.map(b => b.id===id ? { ...b, status:'confirmado' } : b) } : null)
+    } catch { toast('Erro ao confirmar', 'error') }
+  }
+
+  async function handleCancel(id) {
+    if (!confirm('Cancelar este agendamento?')) return
+    try {
+      await bookingsApi.cancel(id)
+      toast('Agendamento cancelado', 'warning')
+      load()
+      setDayModal(prev => prev ? { ...prev, bookings: prev.bookings.map(b => b.id===id ? { ...b, status:'cancelado' } : b) } : null)
+    } catch { toast('Erro ao cancelar', 'error') }
+  }
+
+  async function handleDelete(id) {
+    if (!confirm('Excluir permanentemente este agendamento?')) return
+    try {
+      await bookingsApi.delete(id)
+      toast('Agendamento excluído')
+      load()
+      setDayModal(prev => prev ? { ...prev, bookings: prev.bookings.filter(b => b.id !== id) } : null)
+    } catch(err) { toast(err.response?.data?.error || 'Erro ao excluir', 'error') }
+  }
+
   function handleSaved() {
     const date = bookingModal?.date
     setBookingModal(null)
@@ -413,7 +442,27 @@ export default function Calendario() {
                       {b.teacher?.name && (
                         <div style={{ fontSize:'12.5px', color:'var(--text-3)', marginBottom:'3px' }}>👤 {b.teacher.name}</div>
                       )}
-                      {b.purpose && <div style={{ fontSize:'12px', color:'var(--text-4)' }}>📝 {b.purpose}</div>}
+                      {b.purpose && <div style={{ fontSize:'12px', color:'var(--text-4)', marginBottom:'6px' }}>📝 {b.purpose}</div>}
+                      <div style={{ display:'flex', gap:'6px', flexWrap:'wrap' }}>
+                        {isAdmin && b.status === 'pendente' && (
+                          <button onClick={() => handleConfirm(b.id)}
+                            style={{ padding:'4px 10px', background:'var(--success-bg)', color:'var(--success)', border:'none', borderRadius:'var(--radius-sm)', cursor:'pointer', fontSize:'11.5px', fontWeight:700 }}>
+                            ✓ Confirmar
+                          </button>
+                        )}
+                        {b.status !== 'cancelado' && (
+                          <button onClick={() => handleCancel(b.id)}
+                            style={{ padding:'4px 10px', background:'var(--danger-bg)', color:'var(--danger)', border:'none', borderRadius:'var(--radius-sm)', cursor:'pointer', fontSize:'11.5px', fontWeight:700 }}>
+                            ✕ Cancelar
+                          </button>
+                        )}
+                        {isAdmin && (
+                          <button onClick={() => handleDelete(b.id)}
+                            style={{ padding:'4px 10px', background:'var(--surface-3)', color:'var(--text-3)', border:'none', borderRadius:'var(--radius-sm)', cursor:'pointer', fontSize:'11.5px', fontWeight:700 }}>
+                            🗑 Excluir
+                          </button>
+                        )}
+                      </div>
                     </div>
                     <StatusBadge status={b.status} />
                   </div>
