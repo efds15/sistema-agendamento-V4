@@ -9,14 +9,25 @@ const pool = mysql.createPool({
   password:          process.env.DB_PASSWORD || '',
   database:          process.env.DB_NAME     || 'agendamento',
   waitForConnections: true,
-  connectionLimit:    10,
+  connectionLimit:    5,
+  idleTimeout:       30000,
+  enableKeepAlive:   true,
+  keepAliveInitialDelay: 10000,
   timezone:          'Z',
   decimalNumbers:    true,
 })
 
 export async function query(sql, params = []) {
-  const [rows] = await pool.execute(sql, params)
-  return rows
+  try {
+    const [rows] = await pool.execute(sql, params)
+    return rows
+  } catch (err) {
+    if (err.code === 'PROTOCOL_CONNECTION_LOST' || err.code === 'ECONNRESET' || err.code === 'EPIPE') {
+      const [rows] = await pool.execute(sql, params)
+      return rows
+    }
+    throw err
+  }
 }
 
 export async function queryOne(sql, params = []) {
